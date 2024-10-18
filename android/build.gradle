@@ -25,7 +25,7 @@ android {
     if (project.android.hasProperty("namespace")) {
         namespace 'com.amolg.flutterbarcodescanner'
     }
-    compileSdkVersion 30
+    compileSdkVersion 34
 
     defaultConfig {
         minSdkVersion 16
