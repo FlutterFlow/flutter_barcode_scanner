@@ -14,7 +14,26 @@ enum ScanMode:Int{
 
 public class SwiftFlutterBarcodeScannerPlugin: NSObject, FlutterPlugin, ScanBarcodeDelegate,FlutterStreamHandler {
     
-    public static var viewController = UIViewController()
+    /// The view controller the scanner and its alerts are presented from.
+    ///
+    /// Looked up when needed rather than at registration: under the UIScene
+    /// lifecycle (required for apps built with the iOS 27 SDK) the app
+    /// delegate has no window, and plugins register before any scene connects.
+    public static var viewController: UIViewController {
+        var root = UIApplication.shared.delegate?.window??.rootViewController
+        if root == nil, #available(iOS 13.0, *) {
+            let windows = UIApplication.shared.connectedScenes
+                .filter { $0.activationState == .foregroundActive || $0.activationState == .foregroundInactive }
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap { $0.windows }
+            root = (windows.first { $0.isKeyWindow } ?? windows.first)?.rootViewController
+        }
+        var top = root ?? UIViewController()
+        while let presented = top.presentedViewController, !presented.isBeingDismissed {
+            top = presented
+        }
+        return top
+    }
     public static var lineColor:String=""
     public static var cancelButtonText:String=""
     public static var isShowFlashIcon:Bool=false
@@ -24,7 +43,6 @@ public class SwiftFlutterBarcodeScannerPlugin: NSObject, FlutterPlugin, ScanBarc
     public static var scanMode = ScanMode.QR.index
     
     public static func register(with registrar: FlutterPluginRegistrar) {
-        viewController = (UIApplication.shared.delegate?.window??.rootViewController)!
         let channel = FlutterMethodChannel(name: "flutter_barcode_scanner", binaryMessenger: registrar.messenger())
         let instance = SwiftFlutterBarcodeScannerPlugin()
         registrar.addMethodCallDelegate(instance, channel: channel)
